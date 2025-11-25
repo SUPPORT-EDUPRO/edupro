@@ -800,7 +800,7 @@ export default function ParentMessagesPage() {
                   flex: 1,
                   overflowY: 'auto',
                   padding: isDesktop ? '24px 0px' : '16px 8px',
-                  paddingTop: isDesktop ? '32px' : '92px',
+                  paddingTop: isDesktop ? '32px' : '104px',
                   paddingBottom: 0,
                   background: 'var(--background)',
                   backgroundImage:
