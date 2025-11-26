@@ -795,7 +795,7 @@ export default function TeacherMessagesPage() {
                   overflowY: 'auto',
                   padding: isDesktop ? '24px 0px' : '16px 8px',
                   paddingTop: isDesktop ? '32px' : '128px',
-                  paddingBottom: 0,
+                  paddingBottom: isDesktop ? 0 : '80px',
                   background: 'var(--background)',
                   backgroundImage:
                     'radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.03) 0%, transparent 50%)',
