@@ -111,7 +111,7 @@ export default function HomeworkPage() {
       try {
         // Fetch homework assignments
         const { data, error: hwError } = await supabase
-          .from('homework')
+          .from('homework_assignments')
           .select('*, submissions(*)')
           .eq('child_id', activeChildId)
           .order('due_date', { ascending: true });
