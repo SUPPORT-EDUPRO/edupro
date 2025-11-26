@@ -611,7 +611,7 @@ export default function ParentMessagesPage() {
               {/* Mobile contacts header with back arrow */}
               <div style={{ 
                 padding: '16px 12px', 
-                borderBottom: '1px solid var(--border)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
@@ -619,8 +619,10 @@ export default function ParentMessagesPage() {
                 top: 0,
                 left: 0,
                 right: 0,
-                background: 'var(--background)',
-                zIndex: 100,
+                background: '#111827',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                zIndex: 1000,
               }}>
                 <button
                   onClick={() => router.push('/dashboard/parent')}
@@ -652,9 +654,10 @@ export default function ParentMessagesPage() {
                 left: 0,
                 right: 0,
                 padding: '8px 16px',
-                background: 'var(--background)',
-                zIndex: 99,
-                borderBottom: '1px solid var(--border)',
+                background: '#111827',
+                backdropFilter: 'blur(12px)',
+                zIndex: 999,
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               }}>
                 <div style={{ position: 'relative' }}>
                   <input
@@ -715,10 +718,12 @@ export default function ParentMessagesPage() {
                   top: isDesktop ? 'auto' : 0,
                   left: isDesktop ? 'auto' : 0,
                   right: isDesktop ? 'auto' : 0,
-                  zIndex: isDesktop ? 'auto' : 100,
+                  zIndex: isDesktop ? 'auto' : 1000,
                   padding: isDesktop ? '16px 20px' : '16px 8px 12px 8px',
-                  borderBottom: isDesktop ? '1px solid var(--border)' : 'none',
-                  background: 'var(--surface-1)',
+                  borderBottom: isDesktop ? '1px solid var(--border)' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: isDesktop ? 'var(--surface-1)' : '#111827',
+                  backdropFilter: isDesktop ? 'none' : 'blur(12px)',
+                  boxShadow: isDesktop ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.3)',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -795,8 +800,8 @@ export default function ParentMessagesPage() {
                   flex: 1,
                   overflowY: 'auto',
                   padding: isDesktop ? '24px 0px' : '16px 8px',
-                  paddingTop: isDesktop ? '32px' : '92px',
-                  paddingBottom: 0,
+                  paddingTop: isDesktop ? '32px' : '104px',
+                  paddingBottom: isDesktop ? 0 : '80px',
                   background: 'var(--background)',
                   backgroundImage:
                     'radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.03) 0%, transparent 50%)',
@@ -935,7 +940,7 @@ export default function ParentMessagesPage() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', maxWidth: 900, margin: '0 auto', position: 'relative' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', maxWidth: 900, margin: '0 auto', position: 'relative' }}>
                     {/* Desktop: Icons outside input */}
                     {isDesktop && (
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -982,7 +987,7 @@ export default function ParentMessagesPage() {
                     )}
 
                     {/* Mobile & Desktop: Input field with embedded icons on mobile */}
-                    <div style={{ position: 'relative', flex: 1, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                    <div style={{ position: 'relative', flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
                       {/* Mobile: Emoji button outside input (always visible) */}
                       {!isDesktop && (
                         <button
