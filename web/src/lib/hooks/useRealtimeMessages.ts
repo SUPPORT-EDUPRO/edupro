@@ -60,6 +60,18 @@ export const useRealtimeMessages = ({
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  // Helper function to check if a message should be visible to the current user
+  const shouldShowMessage = useCallback((message: ExtendedChatMessage, currentUserId?: string): boolean => {
+    // If deleted for everyone, don't show
+    if (message.deleted_for_everyone) return false;
+    
+    // If deleted for this specific user, don't show
+    const deletedFor = message.deleted_for;
+    if (deletedFor && currentUserId && deletedFor.includes(currentUserId)) return false;
+    
+    return true;
+  }, []);
+
   // Normalize message row to ExtendedChatMessage
   const normalizeMessage = useCallback((row: MessageRow): ExtendedChatMessage => {
     // Handle sender being either an object or array (Supabase join returns array)
@@ -123,17 +135,8 @@ export const useRealtimeMessages = ({
 
       // Filter out messages deleted for the current user and normalize
       const filteredMessages = (data || [])
-        .filter((msg: MessageRow) => {
-          // If deleted for everyone, don't show
-          if (msg.deleted_for_everyone) return false;
-          
-          // If deleted for this specific user, don't show
-          const deletedFor = msg.deleted_for;
-          if (deletedFor && userId && deletedFor.includes(userId)) return false;
-          
-          return true;
-        })
-        .map(normalizeMessage);
+        .map(normalizeMessage)
+        .filter((msg) => shouldShowMessage(msg, userId));
 
       setMessages(filteredMessages);
     } catch (err) {
@@ -142,7 +145,7 @@ export const useRealtimeMessages = ({
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, threadId, userId, normalizeMessage]);
+  }, [supabase, threadId, userId, normalizeMessage, shouldShowMessage]);
 
   // Fetch message with sender info by ID
   const fetchMessageById = useCallback(async (messageId: string): Promise<ExtendedChatMessage | null> => {
@@ -205,9 +208,7 @@ export const useRealtimeMessages = ({
             const newMessage = await fetchMessageById(payload.new.id);
             if (newMessage) {
               // Check if should be visible to current user
-              if (newMessage.deleted_for_everyone) return;
-              const deletedFor = newMessage.deleted_for;
-              if (deletedFor && userId && deletedFor.includes(userId)) return;
+              if (!shouldShowMessage(newMessage, userId)) return;
 
               setMessages((prev) => {
                 // Avoid duplicates
@@ -220,14 +221,7 @@ export const useRealtimeMessages = ({
             const updatedMessage = await fetchMessageById(payload.new.id);
             if (updatedMessage) {
               // Check if message should now be hidden
-              if (updatedMessage.deleted_for_everyone) {
-                setMessages((prev) => prev.filter((m) => m.id !== updatedMessage.id));
-                onMessageDeleted?.(updatedMessage.id);
-                return;
-              }
-              
-              const deletedFor = updatedMessage.deleted_for;
-              if (deletedFor && userId && deletedFor.includes(userId)) {
+              if (!shouldShowMessage(updatedMessage, userId)) {
                 setMessages((prev) => prev.filter((m) => m.id !== updatedMessage.id));
                 onMessageDeleted?.(updatedMessage.id);
                 return;
@@ -257,7 +251,7 @@ export const useRealtimeMessages = ({
         channelRef.current = null;
       }
     };
-  }, [supabase, threadId, userId, fetchMessages, fetchMessageById, onNewMessage, onMessageUpdated, onMessageDeleted]);
+  }, [supabase, threadId, userId, fetchMessages, fetchMessageById, shouldShowMessage, onNewMessage, onMessageUpdated, onMessageDeleted]);
 
   // Edit message (within 15 minutes)
   const editMessage = useCallback(async (messageId: string, newContent: string): Promise<boolean> => {

@@ -9,11 +9,14 @@ import {
   Mic,
   MicOff,
   Minimize2,
-  Maximize2,
   X,
 } from 'lucide-react';
 
 type CallState = 'idle' | 'connecting' | 'ringing' | 'connected' | 'ended' | 'failed';
+
+// Demo mode: Simulates call connection after this delay
+// In production, this would be replaced with actual WebRTC signaling
+const DEMO_CONNECTION_DELAY_MS = 2000;
 
 interface CallInterfaceProps {
   isOpen: boolean;
@@ -147,13 +150,14 @@ export const CallInterface = ({
       setCallState('ringing');
       onCallStart?.();
 
-      // Simulate call connection for demo
+      // Demo mode: Simulate call connection
+      // In production, this would be replaced with actual WebRTC signaling server integration
       setTimeout(() => {
         setCallState('connected');
         callTimerRef.current = setInterval(() => {
           setCallDuration((prev) => prev + 1);
         }, 1000);
-      }, 2000);
+      }, DEMO_CONNECTION_DELAY_MS);
     } catch (err) {
       console.error('Error starting call:', err);
       setCallState('failed');

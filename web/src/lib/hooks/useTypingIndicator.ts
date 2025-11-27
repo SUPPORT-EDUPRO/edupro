@@ -30,6 +30,15 @@ interface TypingIndicatorRow {
   last_updated: string;
 }
 
+// Type for fetched typing indicator data with profile join
+// Supabase returns related records as arrays
+interface FetchedTypingIndicator {
+  user_id: string;
+  is_typing: boolean;
+  last_updated: string;
+  profiles: Array<{ first_name?: string; last_name?: string }> | null;
+}
+
 export const useTypingIndicator = ({
   supabase,
   threadId,
@@ -129,22 +138,23 @@ export const useTypingIndicator = ({
 
       // Filter out stale typing indicators (older than 5 seconds)
       const now = new Date();
-      const activeTypers = (data || [])
-        .filter((t: Record<string, unknown>) => {
-          const lastUpdated = new Date(t.last_updated as string);
+      const activeTypers = (data || [] as FetchedTypingIndicator[])
+        .filter((t: FetchedTypingIndicator) => {
+          const lastUpdated = new Date(t.last_updated);
           const ageMs = now.getTime() - lastUpdated.getTime();
           return ageMs < TYPING_TIMEOUT_MS + 2000; // Give 2s grace period
         })
-        .filter((t: Record<string, unknown>) => t.user_id !== userId) // Exclude self
-        .map((t: Record<string, unknown>): TypingUser => {
-          const profile = t.profiles as { first_name?: string; last_name?: string } | null;
+        .filter((t: FetchedTypingIndicator) => t.user_id !== userId) // Exclude self
+        .map((t: FetchedTypingIndicator): TypingUser => {
+          // Handle profiles being an array (Supabase join result)
+          const profile = t.profiles && t.profiles.length > 0 ? t.profiles[0] : null;
           return {
-            userId: t.user_id as string,
+            userId: t.user_id,
             userName: profile 
               ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
               : undefined,
-            isTyping: t.is_typing as boolean,
-            lastUpdated: t.last_updated as string,
+            isTyping: t.is_typing,
+            lastUpdated: t.last_updated,
           };
         });
 

@@ -11,6 +11,10 @@ import {
   X 
 } from 'lucide-react';
 
+// Constants for touch handling
+const LONG_PRESS_DURATION_MS = 500;
+const TOUCH_MOVE_THRESHOLD_PX = 10;
+
 interface MessageContextMenuProps {
   isOpen: boolean;
   onClose: () => void;
@@ -420,7 +424,7 @@ export const useMessageContextMenu = () => {
 
     longPressTimerRef.current = setTimeout(() => {
       openContextMenu(event, messageId, messageContent, isOwnMessage, messageCreatedAt);
-    }, 500); // 500ms for long press
+    }, LONG_PRESS_DURATION_MS);
   }, [openContextMenu]);
 
   // Handle touch move (cancel long press if moved too much)
@@ -431,8 +435,8 @@ export const useMessageContextMenu = () => {
     const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
     const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
 
-    // Cancel if moved more than 10 pixels
-    if (dx > 10 || dy > 10) {
+    // Cancel if moved more than threshold
+    if (dx > TOUCH_MOVE_THRESHOLD_PX || dy > TOUCH_MOVE_THRESHOLD_PX) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
       touchStartPosRef.current = null;
