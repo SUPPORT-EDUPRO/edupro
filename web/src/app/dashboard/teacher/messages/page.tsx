@@ -879,7 +879,7 @@ export default function TeacherMessagesPage() {
                   position: isDesktop ? 'absolute' : 'fixed',
                   bottom: 0,
                   left: 0,
-                  right: 0,
+                  right: isDesktop ? CONTACT_PANEL_WIDTH : 0,
                   padding: isDesktop ? '12px 16px' : '10px 12px',
                   background: 'var(--background)',
                   borderTop: isDesktop ? '1px solid var(--border)' : 'none',
@@ -932,7 +932,16 @@ export default function TeacherMessagesPage() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', maxWidth: 900, margin: '0 auto', position: 'relative' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: 8, 
+                    alignItems: 'flex-end', 
+                    maxWidth: isDesktop && selectedThreadId ? 'calc(100% - 40px)' : 900,
+                    marginLeft: 'auto',
+                    marginRight: isDesktop && selectedThreadId ? '20px' : 'auto',
+                    position: 'relative',
+                    width: '100%'
+                  }}>
                     {/* Desktop: Icons outside input */}
                     {isDesktop && (
                       <div style={{ display: 'flex', gap: 8 }}>
