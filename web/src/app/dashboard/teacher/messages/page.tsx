@@ -604,6 +604,79 @@ export default function TeacherMessagesPage() {
           boxSizing: 'border-box',
         }}
       >
+        {/* Desktop: Thread list on the left side */}
+        {isDesktop && (
+          <div
+            style={{
+              width: 280,
+              borderRight: '1px solid var(--border)',
+              background: 'var(--surface-1)',
+              display: 'flex',
+              flexDirection: 'column',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ padding: '16px 12px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                Conversations {totalUnread > 0 && `• ${totalUnread}`}
+              </h3>
+              <div style={{ position: 'relative', marginTop: 10 }}>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px 8px 32px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-2)',
+                    color: 'var(--text-primary)',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                />
+                <Search
+                  size={14}
+                  color="var(--muted)"
+                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
+              {threadsLoading ? (
+                <div style={{ textAlign: 'center', padding: 30 }}>
+                  <div className="spinner" style={{ margin: '0 auto' }}></div>
+                </div>
+              ) : error ? (
+                <div style={{ textAlign: 'center', padding: 24 }}>
+                  <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>Failed to load messages</p>
+                  <button className="btn btnSecondary" onClick={fetchThreads}>
+                    Try Again
+                  </button>
+                </div>
+              ) : filteredThreads.length > 0 ? (
+                filteredThreads.map((thread) => (
+                  <ThreadItem
+                    key={thread.id}
+                    thread={thread}
+                    isActive={thread.id === selectedThreadId}
+                    onSelect={() => setSelectedThreadId(thread.id)}
+                  />
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: 30 }}>
+                  <MessageCircle size={40} color="var(--muted)" style={{ margin: '0 auto 10px' }} />
+                  <p style={{ color: 'var(--muted)', fontSize: 13 }}>No conversations yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Main chat area */}
         <div
           style={{
             flex: 1,
@@ -611,7 +684,6 @@ export default function TeacherMessagesPage() {
             flexDirection: 'column',
             position: 'relative',
             overflow: 'hidden',
-            marginRight: isDesktop ? 280 : 0,
           }}
         >
           {/* Mobile: Show thread list when no selection, otherwise show chat */}
@@ -1218,7 +1290,7 @@ export default function TeacherMessagesPage() {
                   </svg>
                 </div>
                 <h2 style={{ fontSize: 22, fontWeight: 700, color: 'white', marginBottom: 12, textAlign: 'center' }}>
-                  EduDash Pro Messages
+                  Young Eagles Messages
                 </h2>
                 <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: 15, lineHeight: 1.5, textAlign: 'center' }}>
                   Send private, secure messages between parents and teachers.
@@ -1228,82 +1300,6 @@ export default function TeacherMessagesPage() {
             )
           )}
         </div>
-
-        {isDesktop && (
-          <div
-            style={{
-              position: 'fixed',
-              right: 0,
-              top: 'var(--topnav-h)',
-              bottom: 0,
-              width: 280,
-              paddingRight: 16,
-              borderLeft: '1px solid var(--border)',
-              background: 'var(--surface-1)',
-              display: 'flex',
-              flexDirection: 'column',
-              zIndex: 20,
-            }}
-          >
-            <div style={{ padding: '16px 12px', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
-                Conversations {totalUnread > 0 && `• ${totalUnread}`}
-              </h3>
-              <div style={{ position: 'relative', marginTop: 10 }}>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 32px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border)',
-                    background: 'var(--surface-2)',
-                    color: 'var(--text-primary)',
-                    fontSize: 13,
-                    outline: 'none',
-                  }}
-                />
-                <Search
-                  size={14}
-                  color="var(--muted)"
-                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
-              {threadsLoading ? (
-                <div style={{ textAlign: 'center', padding: 30 }}>
-                  <div className="spinner" style={{ margin: '0 auto' }}></div>
-                </div>
-              ) : error ? (
-                <div style={{ textAlign: 'center', padding: 24 }}>
-                  <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>Failed to load messages</p>
-                  <button className="btn btnSecondary" onClick={fetchThreads}>
-                    Try Again
-                  </button>
-                </div>
-              ) : filteredThreads.length > 0 ? (
-                filteredThreads.map((thread) => (
-                  <ThreadItem
-                    key={thread.id}
-                    thread={thread}
-                    isActive={thread.id === selectedThreadId}
-                    onSelect={() => setSelectedThreadId(thread.id)}
-                  />
-                ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: 30 }}>
-                  <MessageCircle size={40} color="var(--muted)" style={{ margin: '0 auto 10px' }} />
-                  <p style={{ color: 'var(--muted)', fontSize: 13 }}>No conversations yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </TeacherShell>
     </>
