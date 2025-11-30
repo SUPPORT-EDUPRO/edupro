@@ -87,13 +87,13 @@ SELECT * FROM (
     (
         'Skills Centre Enterprise',
         'enterprise',
-        1999,
-        19990,
-        100,      -- 100 facilitators
-        -1,       -- Unlimited learners
-        '["Up to 100 facilitators", "Unlimited learners", "Dedicated success manager", "SLA guarantee", "White-label solution", "Custom integrations", "24/7 priority support", "Full SETA compliance module", "Multi-site support"]'::jsonb,
+        0,        -- Custom pricing - contact sales
+        0,        -- Custom pricing - contact sales
+        -1,       -- Unlimited facilitators (custom)
+        -1,       -- Unlimited learners (custom)
+        '["Unlimited facilitators", "Unlimited learners", "Custom pricing", "Dedicated success manager", "SLA guarantee", "White-label solution", "Custom integrations", "24/7 priority support", "Full SETA compliance module", "Multi-site support", "Volume discounts available", "Contact sales for quote"]'::jsonb,
         TRUE,
-        'Enterprise plan for large skills development organizations'
+        'Enterprise plan with custom pricing for large skills development organizations - contact sales'
     )
 ) AS new_plans (name, tier, price_monthly, price_annual, max_teachers, max_students, features, is_active, description)
 WHERE NOT EXISTS (
