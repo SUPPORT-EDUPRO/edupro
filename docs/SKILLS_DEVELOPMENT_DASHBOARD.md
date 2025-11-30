@@ -87,19 +87,31 @@ supabase db diff
 - Bulk certificate generation
 
 #### Enterprise Tier (Custom Pricing)
-- **Unlimited facilitators**
-- **Unlimited learners**
-- **Custom pricing based on organization size**
-- **Volume discounts available**
+
+For organizations with more than 500 learners, we offer tiered enterprise pricing:
+
+| Enterprise Level | Learners | Starting Price |
+|-----------------|----------|----------------|
+| Small | 501-1,000 | From R1,499/mo |
+| Medium | 1,001-2,500 | From R2,499/mo |
+| Large | 2,501-5,000 | From R3,999/mo |
+| XL | 5,001-10,000 | From R5,999/mo |
+| Mega | 10,001+ | From R8,999/mo |
+
+**Enterprise Features**:
+- Unlimited facilitators and learners
 - Dedicated success manager
-- SLA guarantee
+- SLA guarantee (up to 99.9%)
 - White-label solution
 - Custom integrations
 - 24/7 priority support
 - Full SETA compliance module
 - Multi-site support
+- Volume discounts available
 
-> **Note**: Enterprise tier pricing is customized based on your organization's specific needs. Contact sales for a personalized quote.
+> **Sales Team**: See `docs/ENTERPRISE_PRICING_GUIDE.md` for detailed pricing calculations and quote process.
+
+> **Customers**: Contact sales@edudashpro.org.za for a personalized quote.
 
 ## Dashboard Types by Role
 

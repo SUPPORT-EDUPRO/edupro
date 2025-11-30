@@ -463,7 +463,233 @@ FOR EACH ROW
 EXECUTE FUNCTION update_skills_tables_timestamp();
 
 -- ============================================================================
+-- STEP 10: Enterprise Custom Pricing System
+-- ============================================================================
+
+-- Create enterprise_pricing_tiers table for sales team reference
+CREATE TABLE IF NOT EXISTS public.enterprise_pricing_tiers (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tier_name varchar(100) NOT NULL,
+    min_learners integer NOT NULL,
+    max_learners integer,                    -- NULL means unlimited
+    base_price_monthly numeric(10,2) NOT NULL,
+    price_per_learner numeric(10,2) NOT NULL,
+    min_facilitators integer DEFAULT 1,
+    facilitator_price numeric(10,2) DEFAULT 0,
+    discount_annual_percent integer DEFAULT 15,
+    features jsonb DEFAULT '[]'::jsonb,
+    notes text,
+    is_active boolean DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_enterprise_pricing_learner_range ON enterprise_pricing_tiers(min_learners, max_learners);
+
+COMMENT ON TABLE enterprise_pricing_tiers IS 'Enterprise custom pricing tiers for sales team reference';
+
+-- Insert enterprise pricing tiers for sales team
+INSERT INTO public.enterprise_pricing_tiers (
+    tier_name, min_learners, max_learners, base_price_monthly, price_per_learner, 
+    min_facilitators, facilitator_price, discount_annual_percent, features, notes
+)
+VALUES
+-- Small Enterprise (501-1000 learners)
+(
+    'Enterprise Small',
+    501,
+    1000,
+    1499.00,          -- Base price R1,499/month
+    2.50,             -- R2.50 per learner above 500
+    10,               -- Minimum 10 facilitators included
+    50.00,            -- R50 per additional facilitator
+    15,               -- 15% annual discount
+    '["All Premium features", "Dedicated success manager", "Priority email support", "Custom branding", "API access", "SETA integration", "Bulk certificate generation", "Quarterly business reviews"]'::jsonb,
+    'Recommended for mid-sized training centres. Example: 750 learners = R1,499 + (250 x R2.50) = R2,124/month'
+),
+-- Medium Enterprise (1001-2500 learners)
+(
+    'Enterprise Medium',
+    1001,
+    2500,
+    2499.00,          -- Base price R2,499/month
+    2.00,             -- R2.00 per learner above 1000
+    25,               -- Minimum 25 facilitators included
+    40.00,            -- R40 per additional facilitator
+    18,               -- 18% annual discount
+    '["All Small Enterprise features", "24/7 phone support", "SLA guarantee (99.9%)", "Custom integrations", "Multi-site support", "Advanced analytics", "Monthly business reviews"]'::jsonb,
+    'Recommended for established training providers. Example: 1500 learners = R2,499 + (500 x R2.00) = R3,499/month'
+),
+-- Large Enterprise (2501-5000 learners)
+(
+    'Enterprise Large',
+    2501,
+    5000,
+    3999.00,          -- Base price R3,999/month
+    1.50,             -- R1.50 per learner above 2500
+    50,               -- Minimum 50 facilitators included
+    30.00,            -- R30 per additional facilitator
+    20,               -- 20% annual discount
+    '["All Medium Enterprise features", "White-label solution", "Dedicated account manager", "Custom training", "Compliance audit support", "Weekly sync calls"]'::jsonb,
+    'Recommended for large SETA-accredited providers. Example: 3500 learners = R3,999 + (1000 x R1.50) = R5,499/month'
+),
+-- Extra Large Enterprise (5001-10000 learners)
+(
+    'Enterprise XL',
+    5001,
+    10000,
+    5999.00,          -- Base price R5,999/month
+    1.00,             -- R1.00 per learner above 5000
+    100,              -- Minimum 100 facilitators included
+    25.00,            -- R25 per additional facilitator
+    22,               -- 22% annual discount
+    '["All Large Enterprise features", "On-premise deployment option", "Custom feature development", "Executive sponsor", "Quarterly on-site reviews"]'::jsonb,
+    'Recommended for major training institutions. Example: 7500 learners = R5,999 + (2500 x R1.00) = R8,499/month'
+),
+-- Mega Enterprise (10001+ learners)
+(
+    'Enterprise Mega',
+    10001,
+    NULL,             -- Unlimited
+    8999.00,          -- Base price R8,999/month
+    0.75,             -- R0.75 per learner above 10000
+    200,              -- Minimum 200 facilitators included
+    20.00,            -- R20 per additional facilitator
+    25,               -- 25% annual discount
+    '["All XL Enterprise features", "Unlimited everything", "Custom SLA terms", "Dedicated infrastructure", "24/7 dedicated support team", "Custom development hours included"]'::jsonb,
+    'For national/multi-provincial providers. Example: 15000 learners = R8,999 + (5000 x R0.75) = R12,749/month'
+);
+
+-- Create custom_quotes table to track sales quotes
+CREATE TABLE IF NOT EXISTS public.enterprise_quotes (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_name varchar(255) NOT NULL,
+    contact_name varchar(255),
+    contact_email varchar(255),
+    contact_phone varchar(50),
+    estimated_learners integer NOT NULL,
+    estimated_facilitators integer NOT NULL,
+    pricing_tier_id uuid REFERENCES enterprise_pricing_tiers(id),
+    calculated_monthly_price numeric(10,2),
+    calculated_annual_price numeric(10,2),
+    discount_percent integer DEFAULT 0,
+    final_monthly_price numeric(10,2),
+    final_annual_price numeric(10,2),
+    quote_valid_until date,
+    notes text,
+    status varchar(50) DEFAULT 'draft',       -- draft, sent, accepted, rejected, expired
+    created_by uuid REFERENCES auth.users(id),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    accepted_at timestamptz,
+    converted_to_subscription_id uuid
+);
+
+CREATE INDEX IF NOT EXISTS idx_enterprise_quotes_status ON enterprise_quotes(status);
+CREATE INDEX IF NOT EXISTS idx_enterprise_quotes_org ON enterprise_quotes(organization_name);
+
+COMMENT ON TABLE enterprise_quotes IS 'Sales team quotes for enterprise customers';
+
+-- Function to calculate enterprise pricing
+CREATE OR REPLACE FUNCTION calculate_enterprise_price(
+    p_learners integer,
+    p_facilitators integer DEFAULT 0
+)
+RETURNS TABLE (
+    tier_name varchar(100),
+    base_price numeric(10,2),
+    learner_cost numeric(10,2),
+    facilitator_cost numeric(10,2),
+    total_monthly numeric(10,2),
+    total_annual numeric(10,2),
+    annual_discount_percent integer
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_tier enterprise_pricing_tiers%ROWTYPE;
+    v_extra_learners integer;
+    v_extra_facilitators integer;
+    v_learner_cost numeric(10,2);
+    v_facilitator_cost numeric(10,2);
+    v_total_monthly numeric(10,2);
+BEGIN
+    -- Find the appropriate pricing tier
+    SELECT * INTO v_tier
+    FROM enterprise_pricing_tiers
+    WHERE p_learners >= min_learners
+    AND (max_learners IS NULL OR p_learners <= max_learners)
+    AND is_active = true
+    ORDER BY min_learners DESC
+    LIMIT 1;
+    
+    -- If no tier found, use the highest tier
+    IF v_tier IS NULL THEN
+        SELECT * INTO v_tier
+        FROM enterprise_pricing_tiers
+        WHERE is_active = true
+        ORDER BY min_learners DESC
+        LIMIT 1;
+    END IF;
+    
+    -- Calculate extra learners cost
+    v_extra_learners := GREATEST(0, p_learners - v_tier.min_learners);
+    v_learner_cost := v_extra_learners * v_tier.price_per_learner;
+    
+    -- Calculate extra facilitators cost
+    v_extra_facilitators := GREATEST(0, p_facilitators - v_tier.min_facilitators);
+    v_facilitator_cost := v_extra_facilitators * v_tier.facilitator_price;
+    
+    -- Calculate total
+    v_total_monthly := v_tier.base_price_monthly + v_learner_cost + v_facilitator_cost;
+    
+    RETURN QUERY SELECT
+        v_tier.tier_name,
+        v_tier.base_price_monthly,
+        v_learner_cost,
+        v_facilitator_cost,
+        v_total_monthly,
+        v_total_monthly * 12 * (1 - v_tier.discount_annual_percent::numeric / 100),
+        v_tier.discount_annual_percent;
+END;
+$$;
+
+-- RLS policies for pricing tables (sales team only)
+ALTER TABLE enterprise_pricing_tiers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enterprise_quotes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Superadmins can manage pricing tiers"
+ON enterprise_pricing_tiers FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE auth_user_id = auth.uid() 
+        AND role = 'superadmin'
+    )
+);
+
+CREATE POLICY "Superadmins can view all quotes"
+ON enterprise_quotes FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE auth_user_id = auth.uid() 
+        AND role = 'superadmin'
+    )
+);
+
+CREATE POLICY "Superadmins can manage quotes"
+ON enterprise_quotes FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE auth_user_id = auth.uid() 
+        AND role = 'superadmin'
+    )
+);
+
+-- ============================================================================
 -- Migration Complete
 -- ============================================================================
 
-COMMENT ON SCHEMA public IS 'Skills Development schema migration completed. Supports adult learner programmes with SETA compliance features.';
+COMMENT ON SCHEMA public IS 'Skills Development schema migration completed. Supports adult learner programmes with SETA compliance features and enterprise custom pricing.';
