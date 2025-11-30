@@ -166,8 +166,9 @@ Profit = (Ad Revenue + Subscription Revenue) - (AI Costs + Infrastructure)
 - See `/docs/features/AI_QUOTAS.md` for quota system
 - See `/lib/ai/capabilities.ts` for tier features
 - See `WARP.md` for development standards
+- See `/docs/SKILLS_DEVELOPMENT_DASHBOARD.md` for Skills Development organizations (18+ adult learners)
 
 ---
 
-**Last Updated**: November 24, 2025  
+**Last Updated**: November 30, 2025  
 **Status**: ✅ Branding Complete, AdMob in Test Mode
