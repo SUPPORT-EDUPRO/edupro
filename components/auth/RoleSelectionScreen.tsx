@@ -27,7 +27,8 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
     isK12, 
     isCorporate, 
     isSportsClub, 
-    isUniversity 
+    isUniversity,
+    isSkillsDevelopment
   } = orgType;
   
   // Principal/Administrator role
@@ -39,18 +40,22 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
       ? 'Club Administrator'
       : isUniversity
       ? 'Department Head / Dean'
+      : isSkillsDevelopment
+      ? 'Centre Director'
       : 'Principal / Administrator',
     description: isCorporate
       ? 'Manage your organization with complete administrative control'
       : isSportsClub
       ? 'Manage your sports club with complete administrative control'
+      : isSkillsDevelopment
+      ? 'Manage your skills development centre with complete administrative control'
       : `Manage your ${terminology.institution.toLowerCase()} with complete administrative control`,
-    icon: isCorporate ? '👔' : isSportsClub ? '⚽' : '🏛️',
+    icon: isCorporate ? '👔' : isSportsClub ? '⚽' : isSkillsDevelopment ? '🎯' : '🏛️',
     color: '#8B5CF6',
     requirements: [
       `Must be an ${terminology.institution.toLowerCase()} administrator`,
       'Authorized to create organizational accounts',
-      'Responsible for institutional compliance'
+      isSkillsDevelopment ? 'Responsible for SETA compliance and accreditation' : 'Responsible for institutional compliance'
     ],
     capabilities: [
       'Create and manage the organization',
@@ -58,13 +63,13 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
       'View institutional analytics',
       'Configure organizational settings',
       'Export institutional data',
-      'Manage billing and subscriptions'
+      isSkillsDevelopment ? 'Manage accreditation and compliance' : 'Manage billing and subscriptions'
     ],
     invitationRequired: false,
     level: 1
   };
   
-  // Teacher/Instructor role
+  // Teacher/Instructor/Facilitator role
   const teacherRole: RoleOption = {
     role: 'teacher',
     title: terminology.getRoleLabel('teacher'),
@@ -72,27 +77,29 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
       ? `Train ${terminology.members.toLowerCase()} and manage department activities`
       : isSportsClub
       ? `Train ${terminology.members.toLowerCase()} and manage team activities`
+      : isSkillsDevelopment
+      ? `Facilitate ${terminology.groups.toLowerCase()} and assess ${terminology.member.toLowerCase()} competencies`
       : `Educate ${terminology.members.toLowerCase()} and manage ${terminology.group.toLowerCase()} activities`,
-    icon: isCorporate ? '👨‍💼' : isSportsClub ? '🏋️' : '👩‍🏫',
+    icon: isCorporate ? '👨‍💼' : isSportsClub ? '🏋️' : isSkillsDevelopment ? '👨‍🏫' : '👩‍🏫',
     color: '#10B981',
     requirements: [
       'Must be invited by an Administrator',
-      isCorporate ? 'Professional training credentials (recommended)' : 'Professional credentials (recommended)',
+      isSkillsDevelopment ? 'Relevant industry experience and qualifications' : isCorporate ? 'Professional training credentials (recommended)' : 'Professional credentials (recommended)',
       `Assigned to specific ${terminology.groups.toLowerCase()}`
     ],
     capabilities: [
       `Create and manage ${terminology.groups.toLowerCase()}`,
-      isCorporate ? 'Create training programs and assessments' : 'Create assignments and assessments',
-      isCorporate ? `Track ${terminology.member.toLowerCase()} progress` : `Grade ${terminology.member.toLowerCase()} work`,
+      isSkillsDevelopment ? 'Conduct competency assessments' : isCorporate ? 'Create training programs and assessments' : 'Create assignments and assessments',
+      isSkillsDevelopment ? 'Issue certificates and track progress' : isCorporate ? `Track ${terminology.member.toLowerCase()} progress` : `Grade ${terminology.member.toLowerCase()} work`,
       `Track ${terminology.member.toLowerCase()} progress`,
-      `Invite ${terminology.guardians.toLowerCase()}`,
-      `Communicate with ${terminology.guardians.toLowerCase()} and ${terminology.members.toLowerCase()}`
+      isSkillsDevelopment ? `Support ${terminology.members.toLowerCase()} in their learning journey` : `Invite ${terminology.guardians.toLowerCase()}`,
+      `Communicate with ${terminology.members.toLowerCase()}`
     ],
     invitationRequired: true,
     level: 2
   };
   
-  // Parent/Guardian role
+  // Parent/Guardian/Sponsor role - different for skills development (adults don't need guardians)
   const parentRole: RoleOption = {
     role: 'parent',
     title: terminology.getRoleLabel('parent'),
@@ -100,15 +107,27 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
       ? `Monitor ${terminology.member.toLowerCase()} progress and stay connected`
       : isSportsClub
       ? `Monitor your ${terminology.member.toLowerCase()}'s progress and stay connected`
+      : isSkillsDevelopment
+      ? `Sponsor ${terminology.members.toLowerCase()} and track their skills development progress`
       : `Monitor your child's educational progress and stay connected`,
-    icon: '👨‍👩‍👧‍👦',
+    icon: isSkillsDevelopment ? '💼' : '👨‍👩‍👧‍👦',
     color: '#F59E0B',
-    requirements: [
+    requirements: isSkillsDevelopment ? [
+      'Must be registered as a sponsor',
+      `Connected to one or more ${terminology.members.toLowerCase()}`,
+      'Organizational or individual funding arrangement'
+    ] : [
       `Must be invited by your ${terminology.member.toLowerCase()}'s ${terminology.instructor.toLowerCase()}`,
       `Connected to one or more ${terminology.members.toLowerCase()}`,
       'Verified identity and relationship'
     ],
-    capabilities: [
+    capabilities: isSkillsDevelopment ? [
+      `View ${terminology.member.toLowerCase()} progress and attendance`,
+      'Track skills development milestones',
+      `Communicate with ${terminology.instructors.toLowerCase()}`,
+      'Receive progress reports and updates',
+      'View certificates and achievements'
+    ] : [
       isCorporate ? `View ${terminology.member.toLowerCase()} training progress` : `View ${terminology.member.toLowerCase()}'s assignments and grades`,
       isCorporate ? 'Track performance progress' : 'Track academic progress',
       `Communicate with ${terminology.instructors.toLowerCase()}`,
@@ -120,7 +139,7 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
     level: 3
   };
   
-  // Student/Member role
+  // Student/Member/Learner role
   const studentRole: RoleOption = {
     role: 'student',
     title: terminology.getRoleLabel('student'),
@@ -128,15 +147,28 @@ function generateRoleOptions(terminology: any, orgType: any): RoleOption[] {
       ? 'Access your training programs and track your professional development'
       : isSportsClub
       ? 'Access your training programs, track performance, and develop your skills'
+      : isSkillsDevelopment
+      ? 'Access skills programmes, complete assessments, and earn certificates (18+ years)'
       : 'Access your coursework, assignments, and track your academic journey',
-    icon: isCorporate ? '💼' : isSportsClub ? '🏃' : '🎓',
+    icon: isCorporate ? '💼' : isSportsClub ? '🏃' : isSkillsDevelopment ? '🎓' : '🎓',
     color: '#3B82F6',
-    requirements: [
+    requirements: isSkillsDevelopment ? [
+      'Must be 18 years or older',
+      `Enrolled in a ${terminology.institution.toLowerCase()} programme`,
+      'Valid South African ID or passport'
+    ] : [
       `Must be enrolled in participating ${terminology.institution.toLowerCase()} (recommended)`,
       'Age appropriate',
       `${terminology.guardian} approval may be required`
     ],
-    capabilities: [
+    capabilities: isSkillsDevelopment ? [
+      `Enroll in ${terminology.groups.toLowerCase()} and workshops`,
+      'Complete competency assessments',
+      'Track progress and earn certificates',
+      'Build digital portfolio',
+      `Communicate with ${terminology.instructors.toLowerCase()}`,
+      'Access career guidance resources'
+    ] : [
       isCorporate ? 'View and complete training modules' : 'View and submit assignments',
       isCorporate ? 'Access training materials' : 'Access course materials',
       'Track grades and progress',

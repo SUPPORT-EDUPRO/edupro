@@ -9,7 +9,7 @@ import { assertSupabase } from '@/lib/supabase';
 
 export interface CreateOrganizationParams {
   name: string;
-  type?: 'preschool' | 'daycare' | 'primary_school' | 'skills' | 'tertiary' | 'org' | 'other';
+  type?: 'preschool' | 'daycare' | 'primary_school' | 'skills' | 'skills_development' | 'tertiary' | 'org' | 'other';
   phone?: string | null;
   status?: 'active' | 'inactive' | 'pending';
 }
