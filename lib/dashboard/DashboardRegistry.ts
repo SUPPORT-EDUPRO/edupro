@@ -67,6 +67,7 @@ export function getHubType(role: string): HubType {
     employee: 'learner',
     trainee: 'learner',
     member: 'learner',
+    learner: 'learner',
     
     // Instructor hub
     teacher: 'instructor',
@@ -75,6 +76,7 @@ export function getHubType(role: string): HubType {
     professor: 'instructor',
     tutor: 'instructor',
     instructor: 'instructor',
+    facilitator: 'instructor',
     
     // Guardian hub
     parent: 'guardian',
@@ -89,6 +91,8 @@ export function getHubType(role: string): HubType {
     superadmin: 'admin',
     club_admin: 'admin',
     center_admin: 'admin',
+    centre_director: 'admin',
+    department_head: 'admin',
     manager: 'admin',
   };
   
@@ -155,8 +159,8 @@ const widgetRegistry: Record<HubType, WidgetManifest[]> = {
       description: 'View and download certificates',
       Component: require('@/components/dashboard/cards/CertificationsCard').default,
       featureKey: 'certifications',
-      roles: ['employee', 'trainee'],
-      orgTypes: ['corporate' as OrganizationType, 'training_center' as OrganizationType],
+      roles: ['employee', 'trainee', 'learner'],
+      orgTypes: ['corporate' as OrganizationType, 'training_center' as OrganizationType, 'skills_development' as OrganizationType],
       ageGroups: ['adult'],
       order: 35,
     },
