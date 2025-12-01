@@ -5,6 +5,7 @@
  * Extracted from TeacherShell.tsx
  */
 
+import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { X, LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -61,20 +62,17 @@ export function TeacherMobileNav({ isOpen, onClose, nav }: TeacherMobileNavProps
           </button>
         </div>
         
+        {/* Navigation Links - Use Link component for proper Next.js navigation */}
         <nav className="nav" style={{ display: 'grid', gap: 6 }}>
           {nav.map((it) => {
             const Icon = it.icon as any;
             const active = pathname === it.href || pathname?.startsWith(it.href + '/');
             return (
-              <button 
+              <Link 
                 key={it.href} 
+                href={it.href}
                 className={`navItem ${active ? 'navItemActive' : ''}`}
-                onClick={() => { 
-                  console.log('🔗 Nav clicked:', it.href);
-                  onClose();
-                  // Force navigation using window.location since router.push isn't working
-                  window.location.href = it.href;
-                }}
+                onClick={onClose}
                 style={{ width: '100%' }}
               >
                 <Icon className="navIcon" />
@@ -82,7 +80,7 @@ export function TeacherMobileNav({ isOpen, onClose, nav }: TeacherMobileNavProps
                 {typeof it.badge === 'number' && it.badge > 0 && (
                   <span className="navItemBadge badgeNumber">{it.badge}</span>
                 )}
-              </button>
+              </Link>
             );
           })}
         </nav>

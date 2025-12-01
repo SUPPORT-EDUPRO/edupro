@@ -285,16 +285,17 @@ export function ParentShell({ tenantSlug, userEmail, userName, preschoolName, un
               </button>
             </div>
             
-            {/* Navigation Links */}
+            {/* Navigation Links - Use Link component for proper Next.js navigation */}
             <nav className="nav" style={{ display: 'grid', gap: 6 }}>
               {nav.map((it) => {
                 const Icon = it.icon as any;
                 const active = pathname === it.href || pathname?.startsWith(it.href + '/');
                 return (
-                  <button 
+                  <Link 
                     key={it.href} 
+                    href={it.href}
                     className={`navItem ${active ? 'navItemActive' : ''}`}
-                    onClick={() => { setMobileNavOpen(false); window.location.href = it.href; }}
+                    onClick={() => setMobileNavOpen(false)}
                     style={{ width: '100%' }}
                   >
                     <Icon className="navIcon" />
@@ -302,7 +303,7 @@ export function ParentShell({ tenantSlug, userEmail, userName, preschoolName, un
                     {typeof it.badge === 'number' && it.badge > 0 && (
                       <span className="navItemBadge badgeNumber">{it.badge}</span>
                     )}
-                  </button>
+                  </Link>
                 );
               })}
             </nav>
