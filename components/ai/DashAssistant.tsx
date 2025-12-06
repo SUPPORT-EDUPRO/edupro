@@ -53,7 +53,7 @@ import {
   formatFileSize 
 } from '@/services/AttachmentService';
 import { track } from '@/lib/analytics';
-import { renderCAPSResults } from '@/lib/caps/parseCAPSResults';
+import { renderCAPSResults } from '@/lib/caps';
 // AI Quota checking
 import { checkAIQuota, showQuotaExceededAlert } from '@/lib/ai/guards';
 import type { AIQuotaFeature } from '@/lib/ai/limits';
