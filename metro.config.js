@@ -31,6 +31,9 @@ config.resolver.sourceExts = config.resolver.sourceExts.filter(ext => ext !== 'p
 config.resolver.platforms = ['ios', 'android', 'web'];
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
+// Note: react-native-webrtc is aliased to @daily-co/react-native-webrtc via npm overrides
+// No need for Metro extraNodeModules alias - npm handles the resolution
+
 // Exclude debug/test/mock files from production bundle
 const exclusionList = require('metro-config/src/defaults/exclusionList');
 config.resolver.blockList = exclusionList([
