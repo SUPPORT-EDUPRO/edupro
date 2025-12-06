@@ -14,7 +14,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { DashAvatar } from './DashAvatar';
 import { BrandGradients, BrandColors } from '@/components/branding';
 import type { DashMessage } from '@/services/dash-ai/types';
-import { renderCAPSResults } from '@/lib/caps';
 
 export interface MessageBubbleModernProps {
   message: DashMessage;
@@ -300,14 +299,7 @@ export function MessageBubbleModern({
           )}
         </View>
 
-        {/* CAPS Document Results (for assistant messages with tool results) */}
-        {!isUser && !isSystem && message.metadata?.tool_results && (
-          <View style={styles.capsResultsContainer}>
-            {renderCAPSResults(message.metadata)}
-          </View>
-        )}
-
-        {/* Timestamp */}
+        {/* Timestamp */
         <Text
           style={[
             styles.timestamp,

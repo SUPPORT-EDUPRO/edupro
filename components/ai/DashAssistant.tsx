@@ -53,7 +53,6 @@ import {
   formatFileSize 
 } from '@/services/AttachmentService';
 import { track } from '@/lib/analytics';
-import { renderCAPSResults } from '@/lib/caps';
 // AI Quota checking
 import { checkAIQuota, showQuotaExceededAlert } from '@/lib/ai/guards';
 import type { AIQuotaFeature } from '@/lib/ai/limits';
@@ -1014,13 +1013,6 @@ export const DashAssistant: React.FC<DashAssistantProps> = ({
                   </Text>
                 </View>
               ))}
-            </View>
-          )}
-          
-          {/* CAPS results (tool outputs) */}
-          {!isUser && message.metadata?.tool_results && (
-            <View style={{ marginTop: 8 }}>
-              {renderCAPSResults(message.metadata)}
             </View>
           )}
 
