@@ -207,7 +207,7 @@ serve(async (req) => {
           }),
         });
 
-        // Email to privacy team
+        // Email to privacy team and superadmin
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -216,7 +216,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             from: 'EduDash Pro System <noreply@edudashpro.org.za>',
-            to: 'privacy@edudashpro.org.za',
+            to: ['privacy@edudashpro.org.za', 'superadmin@edudashpro.org.za'],
             subject: `🗑️ New Deletion Request - ${body.requestId}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
