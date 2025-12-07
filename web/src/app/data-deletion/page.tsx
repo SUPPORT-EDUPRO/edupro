@@ -71,23 +71,59 @@ export default function DataDeletionPage() {
 
     setRequestData(data);
 
-    // Send via mailto
-    const subject = encodeURIComponent(`Data Deletion Request - ${data.requestId}`);
+    // Format deletion types for display
+    const deletionTypeLabels: Record<string, string> = {
+      'full_account': '🗑️ Full Account Deletion',
+      'voice_recordings': '🎙️ Voice Recordings',
+      'ai_conversations': '🤖 AI Conversations',
+      'uploaded_files': '📁 Uploaded Files',
+      'analytics_data': '📊 Analytics Data',
+      'other': '📝 Other',
+    };
+
+    const formattedDeletionTypes = data.deletionTypes
+      .map(type => deletionTypeLabels[type] || type.replace(/_/g, ' '))
+      .join('\n   • ');
+
+    const roleLabels: Record<string, string> = {
+      'principal': 'Principal / School Administrator',
+      'teacher': 'Teacher',
+      'parent': 'Parent / Guardian',
+      'student': 'Student (via parent/guardian)',
+    };
+
+    // Send via mailto with nicely formatted body
+    const subject = encodeURIComponent(`🗑️ Data Deletion Request - ${data.requestId}`);
     const body = encodeURIComponent(
-      `Data Deletion Request\n\n` +
-      `Request ID: ${data.requestId}\n` +
-      `Timestamp: ${data.timestamp}\n\n` +
-      `User Information:\n` +
-      `- Name: ${data.fullName}\n` +
-      `- Email: ${data.email}\n` +
-      `- Role: ${data.role}\n` +
-      `- Preschool: ${data.preschool}\n\n` +
-      `Deletion Requested For:\n` +
-      `${data.deletionTypes.map(type => `- ${type.replace(/_/g, ' ')}`).join('\n')}\n\n` +
-      `Reason:\n${data.reason}\n\n` +
-      `---\n` +
-      `JSON Format (for processing):\n` +
-      JSON.stringify(data, null, 2)
+      `════════════════════════════════════════════════════════\n` +
+      `           DATA DELETION REQUEST - EDUDASH PRO\n` +
+      `════════════════════════════════════════════════════════\n\n` +
+      `📋 REQUEST DETAILS\n` +
+      `────────────────────────────────────────────────────────\n` +
+      `   Request ID:    ${data.requestId}\n` +
+      `   Submitted:     ${new Date(data.timestamp).toLocaleString('en-ZA', { dateStyle: 'full', timeStyle: 'short' })}\n\n` +
+      `👤 USER INFORMATION\n` +
+      `────────────────────────────────────────────────────────\n` +
+      `   Full Name:     ${data.fullName}\n` +
+      `   Email:         ${data.email}\n` +
+      `   Role:          ${roleLabels[data.role] || data.role}\n` +
+      `   Organization:  ${data.preschool}\n\n` +
+      `🗑️ DATA TO BE DELETED\n` +
+      `────────────────────────────────────────────────────────\n` +
+      `   • ${formattedDeletionTypes}\n\n` +
+      `💬 REASON FOR DELETION\n` +
+      `────────────────────────────────────────────────────────\n` +
+      `   ${data.reason}\n\n` +
+      `════════════════════════════════════════════════════════\n` +
+      `⚠️  IMPORTANT NOTES\n` +
+      `════════════════════════════════════════════════════════\n` +
+      `   • We will verify your identity within 72 hours\n` +
+      `   • You have 30 days to recover data before permanent deletion\n` +
+      `   • Some data may be retained for legal compliance\n\n` +
+      `────────────────────────────────────────────────────────\n` +
+      `This request was submitted via edudashpro.org.za/data-deletion\n` +
+      `For questions, contact: privacy@edudashpro.org.za\n` +
+      `────────────────────────────────────────────────────────\n`
     );
 
     window.location.href = `mailto:privacy@edudashpro.org.za?subject=${subject}&body=${body}`;
