@@ -67,12 +67,39 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Check if user exists and get their ID
+    // Check for existing pending requests from this email (rate limiting)
+    const { data: existingRequests, error: checkError } = await supabaseAdmin
+      .from('deletion_requests')
+      .select('id, status, submitted_at')
+      .eq('email', body.email.toLowerCase())
+      .in('status', ['pending', 'verified', 'processing'])
+      .order('submitted_at', { ascending: false })
+      .limit(1);
+
+    if (checkError) {
+      console.error('Check existing error:', checkError);
+    }
+
+    if (existingRequests && existingRequests.length > 0) {
+      const existing = existingRequests[0];
+      return new Response(
+        JSON.stringify({ 
+          error: 'You already have a pending deletion request',
+          existingRequestId: existing.id,
+          status: existing.status,
+          submittedAt: existing.submitted_at,
+          message: `You submitted a deletion request on ${new Date(existing.submitted_at).toLocaleDateString()}. Please wait for it to be processed, or contact privacy@edudashpro.org.za if you need to update it.`
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user exists and get their ID (use maybeSingle to avoid 406 error)
     const { data: existingUser } = await supabaseAdmin
       .from('profiles')
       .select('id')
       .eq('email', body.email.toLowerCase())
-      .single();
+      .maybeSingle();
 
     // Insert deletion request
     const { data: insertedRequest, error: insertError } = await supabaseAdmin

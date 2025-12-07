@@ -98,6 +98,10 @@ export default function DataDeletionPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        // Handle duplicate request error with better messaging
+        if (response.status === 409 && result.message) {
+          throw new Error(result.message);
+        }
         throw new Error(result.error || 'Failed to submit request');
       }
 
