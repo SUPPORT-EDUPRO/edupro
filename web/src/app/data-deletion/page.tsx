@@ -143,7 +143,7 @@ Date Submitted:   ${new Date(requestData.timestamp).toLocaleString()}
 Full Name:        ${requestData.fullName}
 Email:            ${requestData.email}
 Role:             ${requestData.role}
-Organization:     ${requestData.organization || 'N/A'}
+Organization:     ${requestData.preschool || 'N/A'}
 
 ───────────────────────────────────────────────────────────
                         DATA TO BE DELETED
@@ -446,12 +446,12 @@ Website: https://www.edudashpro.org.za
               </div>
               <div style={styles.detailRow}>
                 <span style={styles.detailLabel}>Role</span>
-                <span style={styles.detailValue} style={{ textTransform: 'capitalize' }}>{requestData?.role}</span>
+                <span style={{ ...styles.detailValue, textTransform: 'capitalize' }}>{requestData?.role}</span>
               </div>
-              {requestData?.organization && requestData.organization !== 'Not provided' && (
+              {requestData?.preschool && requestData.preschool !== 'Not provided' && (
                 <div style={styles.detailRow}>
                   <span style={styles.detailLabel}>Organization</span>
-                  <span style={styles.detailValue}>{requestData.organization}</span>
+                  <span style={styles.detailValue}>{requestData.preschool}</span>
                 </div>
               )}
               <div style={styles.detailRow}>
