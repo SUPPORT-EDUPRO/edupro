@@ -472,7 +472,7 @@ Website: https://www.edudashpro.org.za
               </div>
               <div style={styles.detailRow}>
                 <span style={styles.detailLabel}>Submitted</span>
-                <span style={styles.detailValue}>{new Date(requestData?.timestamp).toLocaleString()}</span>
+                <span style={styles.detailValue}>{requestData?.timestamp ? new Date(requestData.timestamp).toLocaleString() : 'N/A'}</span>
               </div>
             </div>
 
