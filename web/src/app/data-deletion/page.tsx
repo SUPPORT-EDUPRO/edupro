@@ -29,6 +29,7 @@ export default function DataDeletionPage() {
   const [deletionTypes, setDeletionTypes] = useState<string[]>([]);
   const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [requestData, setRequestData] = useState<RequestData | null>(null);
   const [error, setError] = useState('');
 
@@ -44,7 +45,7 @@ export default function DataDeletionPage() {
     );
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -58,6 +59,8 @@ export default function DataDeletionPage() {
       return;
     }
 
+    setSubmitting(true);
+
     const data: RequestData = {
       fullName: formData.fullName,
       email: formData.email,
@@ -69,65 +72,43 @@ export default function DataDeletionPage() {
       requestId: generateRequestId(),
     };
 
-    setRequestData(data);
+    try {
+      // Submit to API
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/submit-deletion-request`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          },
+          body: JSON.stringify({
+            fullName: data.fullName,
+            email: data.email,
+            role: data.role,
+            organization: data.preschool,
+            deletionTypes: data.deletionTypes,
+            reason: data.reason,
+            requestId: data.requestId,
+            timestamp: data.timestamp,
+          }),
+        }
+      );
 
-    // Format deletion types for display
-    const deletionTypeLabels: Record<string, string> = {
-      'full_account': '🗑️ Full Account Deletion',
-      'voice_recordings': '🎙️ Voice Recordings',
-      'ai_conversations': '🤖 AI Conversations',
-      'uploaded_files': '📁 Uploaded Files',
-      'analytics_data': '📊 Analytics Data',
-      'other': '📝 Other',
-    };
+      const result = await response.json();
 
-    const formattedDeletionTypes = data.deletionTypes
-      .map(type => deletionTypeLabels[type] || type.replace(/_/g, ' '))
-      .join('\n   • ');
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit request');
+      }
 
-    const roleLabels: Record<string, string> = {
-      'principal': 'Principal / School Administrator',
-      'teacher': 'Teacher',
-      'parent': 'Parent / Guardian',
-      'student': 'Student (via parent/guardian)',
-    };
-
-    // Send via mailto with nicely formatted body
-    const subject = encodeURIComponent(`🗑️ Data Deletion Request - ${data.requestId}`);
-    const body = encodeURIComponent(
-      `════════════════════════════════════════════════════════\n` +
-      `           DATA DELETION REQUEST - EDUDASH PRO\n` +
-      `════════════════════════════════════════════════════════\n\n` +
-      `📋 REQUEST DETAILS\n` +
-      `────────────────────────────────────────────────────────\n` +
-      `   Request ID:    ${data.requestId}\n` +
-      `   Submitted:     ${new Date(data.timestamp).toLocaleString('en-ZA', { dateStyle: 'full', timeStyle: 'short' })}\n\n` +
-      `👤 USER INFORMATION\n` +
-      `────────────────────────────────────────────────────────\n` +
-      `   Full Name:     ${data.fullName}\n` +
-      `   Email:         ${data.email}\n` +
-      `   Role:          ${roleLabels[data.role] || data.role}\n` +
-      `   Organization:  ${data.preschool}\n\n` +
-      `🗑️ DATA TO BE DELETED\n` +
-      `────────────────────────────────────────────────────────\n` +
-      `   • ${formattedDeletionTypes}\n\n` +
-      `💬 REASON FOR DELETION\n` +
-      `────────────────────────────────────────────────────────\n` +
-      `   ${data.reason}\n\n` +
-      `════════════════════════════════════════════════════════\n` +
-      `⚠️  IMPORTANT NOTES\n` +
-      `════════════════════════════════════════════════════════\n` +
-      `   • We will verify your identity within 72 hours\n` +
-      `   • You have 30 days to recover data before permanent deletion\n` +
-      `   • Some data may be retained for legal compliance\n\n` +
-      `────────────────────────────────────────────────────────\n` +
-      `This request was submitted via edudashpro.org.za/data-deletion\n` +
-      `For questions, contact: privacy@edudashpro.org.za\n` +
-      `────────────────────────────────────────────────────────\n`
-    );
-
-    window.location.href = `mailto:privacy@edudashpro.org.za?subject=${subject}&body=${body}`;
-    setSubmitted(true);
+      setRequestData(data);
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Submission error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const copyJSON = () => {
@@ -371,7 +352,13 @@ export default function DataDeletionPage() {
               {error && <div style={styles.errorMessage}>❌ {error}</div>}
 
               <div style={styles.buttonGroup}>
-                <button type="submit" style={styles.button}>Submit Deletion Request</button>
+                <button 
+                  type="submit" 
+                  style={{ ...styles.button, opacity: submitting ? 0.7 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
+                  disabled={submitting}
+                >
+                  {submitting ? '⏳ Submitting...' : 'Submit Deletion Request'}
+                </button>
                 <Link href="/privacy" style={{ ...styles.secondaryButton, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
                   View Privacy Policy
                 </Link>
@@ -381,7 +368,7 @@ export default function DataDeletionPage() {
         ) : (
           <div style={styles.successBox}>
             <h3 style={styles.successTitle}>✅ Request Submitted Successfully!</h3>
-            <p style={styles.text}>Your data deletion request has been submitted. Here&apos;s what happens next:</p>
+            <p style={styles.text}>Your data deletion request has been submitted and saved to our system. Here&apos;s what happens next:</p>
             <ul style={styles.list}>
               <li>You will receive a verification email within 72 hours to <strong>{requestData?.email}</strong></li>
               <li>Click the link in the email to confirm your identity and authorize the deletion</li>
