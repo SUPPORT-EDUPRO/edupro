@@ -24,11 +24,25 @@ export function StartLiveLesson({
   teacherName,
   subscriptionTier = 'starter',
 }: StartLiveLessonProps) {
+  console.log('[StartLiveLesson] Component render with props:', {
+    preschoolId,
+    teacherId,
+    teacherName,
+    subscriptionTier,
+  });
+
   const systemColorScheme = useColorScheme();
   const { isDark: themeIsDark } = useTheme();
   const isDark = themeIsDark ?? systemColorScheme === 'dark';
 
   const logic = useStartLessonLogic(preschoolId, teacherId, teacherName, subscriptionTier);
+  
+  console.log('[StartLiveLesson] Logic state:', {
+    loading: logic.loading,
+    classesCount: logic.classes.length,
+    tierLabel: logic.tierConfig.label,
+    tierBadge: logic.tierConfig.badge,
+  });
 
   // Theme colors
   const colors = {

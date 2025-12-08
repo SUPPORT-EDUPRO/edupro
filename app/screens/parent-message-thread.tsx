@@ -589,8 +589,8 @@ export default function ParentMessageThreadScreen() {
   useEffect(() => {
     const glowLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(micGlowAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(micGlowAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+        Animated.timing(micGlowAnim, { toValue: 1, duration: 1200, useNativeDriver: false }),
+        Animated.timing(micGlowAnim, { toValue: 0.4, duration: 1200, useNativeDriver: false }),
       ])
     );
     glowLoop.start();
@@ -1223,25 +1223,31 @@ export default function ParentMessageThreadScreen() {
                 )}
               </LinearGradient>
             </TouchableOpacity>
-          ) : InlineVoiceRecorder ? (
-            <InlineVoiceRecorder
-              isRecording={isRecording}
-              onRecordingComplete={handleVoiceRecording}
-              onRecordingCancel={handleVoiceCancel}
-              onRecordingStart={handleVoiceStart}
-            />
           ) : (
-            <TouchableOpacity 
-              style={styles.actionButton} 
-              onPress={() => Alert.alert('Voice', 'Voice recording not available')}
-            >
-              <LinearGradient 
-                colors={['#0776d1ff', '#043c85ff']} 
-                style={[styles.gradientButton, styles.micButton]}
-              >
-                <Ionicons name="mic" size={22} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
+            // Glowing mic button with InlineVoiceRecorder
+            <View style={styles.micContainer}>
+              <Animated.View style={[styles.micGlow, { opacity: micGlowAnim }]} />
+              {InlineVoiceRecorder ? (
+                <InlineVoiceRecorder
+                  isRecording={isRecording}
+                  onRecordingComplete={handleVoiceRecording}
+                  onRecordingCancel={handleVoiceCancel}
+                  onRecordingStart={handleVoiceStart}
+                />
+              ) : (
+                <TouchableOpacity 
+                  style={styles.actionButton} 
+                  onPress={() => Alert.alert('Voice', 'Voice recording not available')}
+                >
+                  <LinearGradient 
+                    colors={['#0776d1ff', '#043c85ff']} 
+                    style={[styles.gradientButton, styles.micButton]}
+                  >
+                    <Ionicons name="mic" size={22} color="#fff" />
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
             </>
           )}

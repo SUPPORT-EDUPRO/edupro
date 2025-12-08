@@ -16,6 +16,14 @@ export default function StartLiveLessonScreen() {
   const { profile } = useAuth();
   const { tier } = useSubscription();
 
+  console.log('[StartLiveLessonScreen] Render with:', {
+    profileId: profile?.id,
+    preschoolId: profile?.preschool_id,
+    organizationId: profile?.organization_id,
+    tier,
+    email: profile?.email,
+  });
+
   const preschoolId = profile?.preschool_id || profile?.organization_id;
 
   if (!preschoolId) {

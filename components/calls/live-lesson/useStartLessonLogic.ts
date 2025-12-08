@@ -42,6 +42,13 @@ export function useStartLessonLogic(
   teacherName: string,
   subscriptionTier: string
 ) {
+  console.log('[useStartLessonLogic] Props received:', {
+    preschoolId,
+    teacherId,
+    teacherName,
+    subscriptionTier,
+  });
+
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [lessonTitle, setLessonTitle] = useState('');
@@ -60,6 +67,12 @@ export function useStartLessonLogic(
   const [customDuration, setCustomDuration] = useState<number>(0);
 
   const tierConfig = TIER_TIME_LIMITS[subscriptionTier.toLowerCase()] || TIER_TIME_LIMITS.starter;
+  console.log('[useStartLessonLogic] Tier calculation:', {
+    input: subscriptionTier,
+    lowercase: subscriptionTier.toLowerCase(),
+    foundConfig: !!TIER_TIME_LIMITS[subscriptionTier.toLowerCase()],
+    tierConfig,
+  });
   const maxDurationMinutes = tierConfig.minutes || 1440;
   
   const durationOptions = useMemo(() => {
@@ -135,12 +148,19 @@ export function useStartLessonLogic(
   // Fetch classes
   useEffect(() => {
     const fetchClasses = async () => {
-      const { data } = await supabase
+      console.log('[useStartLessonLogic] Fetching classes for teacherId:', teacherId);
+      const { data, error } = await supabase
         .from('classes')
         .select('id, name, grade_level')
         .eq('teacher_id', teacherId)
         .eq('active', true)
         .order('name');
+
+      console.log('[useStartLessonLogic] Classes query result:', {
+        count: data?.length || 0,
+        error: error?.message,
+        data: data?.map(c => ({ id: c.id, name: c.name }))
+      });
 
       if (data) {
         const classesWithCounts = await Promise.all(
@@ -152,6 +172,7 @@ export function useStartLessonLogic(
             return { ...cls, student_count: count || 0 };
           })
         );
+        console.log('[useStartLessonLogic] Classes with counts:', classesWithCounts);
         setClasses(classesWithCounts);
         if (classesWithCounts.length > 0) {
           setSelectedClass(classesWithCounts[0].id);
