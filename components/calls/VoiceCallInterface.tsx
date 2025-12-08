@@ -77,10 +77,13 @@ export function VoiceCallInterface({
 
   const dailyRef = useRef<any>(null);
   const callIdRef = useRef<string | null>(callId || null);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ringingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Ring timeout duration (30 seconds like WhatsApp)
+  const RING_TIMEOUT_MS = 30000;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const ringbackSoundRef = useRef<Audio.Sound | null>(null);
 
   // Update callIdRef when prop changes
   useEffect(() => {
@@ -127,47 +130,41 @@ export function VoiceCallInterface({
     }
   }, [callState, pulseAnim]);
 
-  // Ringback tone for outgoing calls
+  // Device ringback tone via InCallManager
   useEffect(() => {
-    const playRingback = async () => {
-      if ((callState === 'connecting' || callState === 'ringing') && isOwner) {
-        try {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-            shouldDuckAndroid: true,
-          });
-
-          const { sound } = await Audio.Sound.createAsync(
-            require('@/assets/sounds/ringback.mp3'),
-            { isLooping: true, volume: 0.5 }
-          );
-          ringbackSoundRef.current = sound;
-          await sound.playAsync();
-        } catch (error) {
-          console.warn('[VoiceCall] Failed to play ringback tone:', error);
+    if ((callState === 'connecting' || callState === 'ringing') && isOwner) {
+      try {
+        console.log('[VoiceCall] Starting device ringback via InCallManager');
+        if (InCallManager) {
+          // '_DTMF_' or '_DEFAULT_' uses system default ringback
+          InCallManager.start({ media: 'audio', ringback: '_DEFAULT_' });
+          InCallManager.setForceSpeakerphoneOn(false);
+          console.log('[VoiceCall] Device ringback started');
         }
-      } else {
-        // Stop ringback when connected or ended
-        if (ringbackSoundRef.current) {
-          try {
-            await ringbackSoundRef.current.stopAsync();
-            await ringbackSoundRef.current.unloadAsync();
-          } catch (error) {
-            console.warn('[VoiceCall] Failed to stop ringback:', error);
-          }
-          ringbackSoundRef.current = null;
+      } catch (error) {
+        console.error('[VoiceCall] Failed to start device ringback:', error);
+      }
+    } else {
+      // Stop ringback when connected or ended
+      try {
+        console.log('[VoiceCall] Stopping device ringback');
+        if (InCallManager) {
+          InCallManager.stopRingback();
         }
+        console.log('[VoiceCall] Device ringback stopped');
+      } catch (error) {
+        console.warn('[VoiceCall] Failed to stop ringback:', error);
       }
     };
 
-    playRingback();
-
     return () => {
-      if (ringbackSoundRef.current) {
-        ringbackSoundRef.current.stopAsync().catch(() => {});
-        ringbackSoundRef.current.unloadAsync().catch(() => {});
+      // Cleanup ringback on unmount
+      try {
+        if (InCallManager) {
+          InCallManager.stopRingback();
+        }
+      } catch (error) {
+        console.warn('[VoiceCall] Failed to cleanup ringback:', error);
       }
     };
   }, [callState, isOwner]);
@@ -234,32 +231,77 @@ export function VoiceCallInterface({
 
   // Cleanup call resources
   const cleanupCall = useCallback(() => {
+    console.log('[VoiceCall] Cleaning up call resources');
+    
     if (dailyRef.current) {
       try {
         dailyRef.current.leave();
         dailyRef.current.destroy();
+        console.log('[VoiceCall] Daily call object cleaned up');
       } catch (err) {
         console.warn('[VoiceCall] Cleanup error:', err);
       }
       dailyRef.current = null;
     }
     
-    // Stop InCallManager
+    // Stop InCallManager and reset audio routing
     try {
       if (InCallManager) {
-        InCallManager.stop();
+        InCallManager.stopRingback(); // Stop any ringback
+        InCallManager.stop(); // Stop InCallManager
+        console.log('[VoiceCall] InCallManager stopped');
       }
     } catch (err) {
       console.warn('[VoiceCall] InCallManager stop error:', err);
     }
-    
-    // Stop ringback sound
-    if (ringbackSoundRef.current) {
-      ringbackSoundRef.current.stopAsync().catch(() => {});
-      ringbackSoundRef.current.unloadAsync().catch(() => {});
-      ringbackSoundRef.current = null;
-    }
   }, []);
+
+  // Ringing timeout - end call if not answered within 30 seconds
+  useEffect(() => {
+    if (callState === 'ringing' && isOwner) {
+      console.log('[VoiceCall] Starting ring timeout:', RING_TIMEOUT_MS, 'ms');
+      
+      ringingTimeoutRef.current = setTimeout(async () => {
+        console.log('[VoiceCall] Ring timeout - no answer, marking as missed');
+        
+        // Update call status to missed
+        if (callIdRef.current) {
+          await supabase
+            .from('active_calls')
+            .update({ status: 'missed' })
+            .eq('call_id', callIdRef.current);
+        }
+        
+        setError('No answer');
+        setCallState('ended');
+        
+        // Haptic feedback for missed call
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        
+        // Close the call UI after a brief delay
+        setTimeout(() => {
+          cleanupCall();
+          onClose();
+        }, 2000);
+      }, RING_TIMEOUT_MS);
+    }
+
+    return () => {
+      if (ringingTimeoutRef.current) {
+        clearTimeout(ringingTimeoutRef.current);
+        ringingTimeoutRef.current = null;
+      }
+    };
+  }, [callState, isOwner, cleanupCall, onClose]);
+
+  // Clear ringing timeout when call connects
+  useEffect(() => {
+    if (callState === 'connected' && ringingTimeoutRef.current) {
+      console.log('[VoiceCall] Call connected, clearing ring timeout');
+      clearTimeout(ringingTimeoutRef.current);
+      ringingTimeoutRef.current = null;
+    }
+  }, [callState]);
 
   // Initialize call
   useEffect(() => {
@@ -277,6 +319,8 @@ export function VoiceCallInterface({
         setCallState('connecting');
         setError(null);
         setCallDuration(0);
+        setIsSpeakerEnabled(false); // Reset to earpiece for new calls
+        console.log('[VoiceCall] Initializing call with earpiece default');
 
         // Get valid session token first - always try to refresh for calls
         console.log('[VoiceCall] Getting session...');
@@ -415,8 +459,14 @@ export function VoiceCallInterface({
         // Initialize InCallManager for proper audio routing (if available)
         try {
           if (InCallManager) {
-            InCallManager.start({ media: 'audio', ringback: '' }); // Empty ringback since we handle it ourselves
-            InCallManager.setForceSpeakerphoneOn(false); // Start with earpiece
+            // Start with earpiece (false = earpiece, true = speaker)
+            InCallManager.start({ 
+              media: 'audio', 
+              auto: false, // Don't auto-enable speaker
+              ringback: '_DEFAULT_' // Use device default ringback
+            });
+            InCallManager.setForceSpeakerphoneOn(false); // Explicitly set to earpiece
+            console.log('[VoiceCall] InCallManager started with earpiece');
           }
         } catch (error) {
           console.warn('[VoiceCall] Failed to start InCallManager:', error);
@@ -425,7 +475,15 @@ export function VoiceCallInterface({
         // Event listeners
         daily.on('joined-meeting', () => {
           console.log('[VoiceCall] Joined meeting');
-          setCallState('connected');
+          // Don't set to connected yet if we're the caller waiting for the callee
+          // Only set connected when another participant joins
+          if (!isOwner || !calleeId) {
+            // If answering a call or no callee, we're connected immediately
+            setCallState('connected');
+          } else {
+            // Caller stays in ringing until callee joins
+            console.log('[VoiceCall] Waiting for callee to join...');
+          }
           updateParticipantCount();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         });
@@ -440,9 +498,26 @@ export function VoiceCallInterface({
           }
         });
 
-        daily.on('participant-joined', () => {
-          console.log('[VoiceCall] Participant joined');
+        daily.on('participant-joined', (event: any) => {
+          console.log('[VoiceCall] Participant joined:', event?.participant?.user_id);
           updateParticipantCount();
+          
+          // When callee joins, switch from ringing to connected
+          if (callState === 'ringing' || isOwner) {
+            console.log('[VoiceCall] Callee joined! Switching to connected state');
+            setCallState('connected');
+            
+            // Stop ringback tone now that call is connected
+            try {
+              if (InCallManager) {
+                InCallManager.stopRingback();
+                console.log('[VoiceCall] Ringback stopped - call connected');
+              }
+            } catch (error) {
+              console.warn('[VoiceCall] Failed to stop ringback:', error);
+            }
+          }
+          
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         });
 
@@ -526,15 +601,23 @@ export function VoiceCallInterface({
   // Toggle speaker (using InCallManager for proper audio routing)
   const toggleSpeaker = useCallback(() => {
     const newSpeakerState = !isSpeakerEnabled;
-    setIsSpeakerEnabled(newSpeakerState);
+    console.log('[VoiceCall] Toggling speaker:', { from: isSpeakerEnabled, to: newSpeakerState });
     
     try {
       if (InCallManager) {
         InCallManager.setForceSpeakerphoneOn(newSpeakerState);
+        setIsSpeakerEnabled(newSpeakerState);
+        console.log('[VoiceCall] Speaker toggled successfully to:', newSpeakerState ? 'speaker' : 'earpiece');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      } else {
+        console.warn('[VoiceCall] InCallManager not available for speaker toggle');
+        // Still update state for UI feedback even if InCallManager unavailable
+        setIsSpeakerEnabled(newSpeakerState);
       }
     } catch (error) {
-      console.warn('[VoiceCall] Failed to toggle speaker:', error);
+      console.error('[VoiceCall] Failed to toggle speaker:', error);
+      // Revert state on error
+      setIsSpeakerEnabled(isSpeakerEnabled);
     }
   }, [isSpeakerEnabled]);
 
@@ -682,11 +765,13 @@ export function VoiceCallInterface({
               onPress={toggleSpeaker}
             >
               <Ionicons
-                name={isSpeakerEnabled ? 'volume-high' : 'volume-mute'}
+                name={isSpeakerEnabled ? 'volume-high' : 'ear'}
                 size={28}
                 color="#ffffff"
               />
-              <Text style={styles.controlLabel}>Speaker</Text>
+              <Text style={styles.controlLabel}>
+                {isSpeakerEnabled ? 'Speaker' : 'Earpiece'}
+              </Text>
             </TouchableOpacity>
 
             {/* End Call or Call Again */}

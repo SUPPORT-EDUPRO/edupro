@@ -225,3 +225,8 @@ playstore-assets/
 
 # Expo config backup
 config/app.json.edudashpro
+
+# Keystore and credentials backup (NEVER COMMIT)
+credentials-backup/
+*.jks
+*.keystore
